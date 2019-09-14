@@ -1,0 +1,41 @@
+
+.display_style {
+	background: rgba(1, 255, 1, 1);
+	color:white;
+    font-style: normal;
+    font-weight: 800;
+    font-size: 24px;
+    padding: 0px 0px 0px 0px;
+}
+.label_style {
+	background: rgba(40, 40, 40, 40);
+	color:white;
+    font-style:normal;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 0px 0px 0px 0px;
+}
+.menu_style {
+	background: rgba(40, 40, 40, 40);
+	color:white;
+    font-style:normal;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 7px 7px 7px 7px;
+}
+.button_style {
+	background: rgba(40, 40, 40, 40);
+	color:white;
+    font-style:normal;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 0px 0px 0px 0px;
+}
+.button_style:active{
+	background-color: rgba(255, 255, 255, 255);
+	color:black;
+}
+
+.window_style {
+	background: rgba(40, 40, 40, 40);
+}
