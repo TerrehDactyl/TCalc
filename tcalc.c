@@ -2,7 +2,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <math.h>
 
-//compile with gcc -Wall -g -lm calc.c -o calc `pkg-config --cflags --libs gtk+-2.0`
+//compile with gcc -Wall -g -lm calc.c -o calc `pkg-config --cflags --libs gtk+-3.0`
 //declarations for the functions used 
 int leftshift(double base);
 void button0_callback();
