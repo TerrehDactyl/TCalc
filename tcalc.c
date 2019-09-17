@@ -2,7 +2,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <math.h>
 
-//compile with gcc -Wall -g -lm calc.c -o calc `pkg-config --cflags --libs gtk+-3.0`
+//compile with gcc -Wall -g -lm calc.c -o calc `pkg-config --cflags --libs gtk+-2.0`
 //declarations for the functions used 
 int leftshift(double base);
 void button0_callback();
@@ -29,20 +29,26 @@ void secondary_callback(GtkWidget *button, guint data);
 void main_callback(GtkWidget *fixed, guint data);
 void main2_callback(GtkWidget *button, guint data);
 void secondary2_callback(GtkWidget *button, guint data);
+void decimalconvert ();
+void decimaltooct ();
+void decimaltobinary ();
+void factorial_callback();
+void conversion_callback(GtkWidget *label, guint data);
 gboolean keyboard_callback (GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 
 
 //I need to find a way to fix this, this is a problem, variables are not supposed to be outside of main.
 double num1, num2;
 // possibly looking into bool functions for all of these
-int multcount, addcount, subcount, divcount, placementcount, decimalcount, powercount, squaredcount,  squareroot;
+int multcount, addcount, subcount, divcount, placementcount, decimalcount, powercount, squaredcount,  squareroot, factorialcount;
+int binarycount = 0, octcount = 0;
 GtkWidget *display; //widget for the display 
 GtkTextBuffer *buffer; //widget for the text 
 
 int main(int argc, char *argv[])  //gotta start somewhere
 {
 GtkWidget *window; //widget for the window
-GtkWidget *grid, *grid2, *grid3, *grid4;
+GtkWidget *numberpad, *grid2, *grid3, *grid4;
 GtkWidget *gridbox;
 GtkWidget *gridvbox;
 GtkWidget *vbox; //widget for the vertical box
@@ -60,7 +66,7 @@ gchar *values[20] = {"%", "/", "*", "7", "8", "9","4", "5", "6","1", "2", "3"}; 
 gchar *misc[2] = {"0", "."};
 
 gchar *secondarys[20] = {"-", "+", "="};
-gchar *secondarys2[20] = {"CE", "x2", "^", "sqrt", "Mod", "", "(", ")"};
+gchar *secondarys2[20] = {"CE", "x2", "^", "sqrt", "Mod", "x!", "(", ")"};
 gchar *conversions[4] = {"Dec", "Bin", "Hex", "Oct"};
 gchar *headers [20] = {"File", "Edit", "Constants", "Settings", "Help"};
 int i = 0; //rows
@@ -102,7 +108,7 @@ gtk_style_context_add_class(windowcontext, "window_style");
 gtk_style_context_add_provider (windowcontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
 gtk_widget_add_events(window, GDK_KEY_PRESS_MASK);
 
-grid = gtk_grid_new(); //sets the table widget as a 4x4 arrangement without autosizing
+numberpad= gtk_grid_new(); //sets the table widget as a 4x4 arrangement without autosizing
 
 //these for loops are for creating the buttons and attaching them to their callbacks 
 for (i=0; i < 4; i++) //for loop for the rows
@@ -111,7 +117,7 @@ for (j=0; j < 3; j++) //for loop for the columns
 {
 button = gtk_button_new_with_label(values[pos]); //sets each button label to the respective button 
 main_callback(button, pos); //attaches the button to the respective callback
-gtk_grid_attach(GTK_GRID(grid), button, j, i, 1, 1); //sets the defaults for creating each table button
+gtk_grid_attach(GTK_GRID(numberpad), button, j, i, 1, 1); //sets the defaults for creating each table button
 gtk_widget_set_size_request(button, 40, 40); //sets the size of the buttons
 buttoncontext = gtk_widget_get_style_context(button);
 gtk_style_context_add_class(buttoncontext, "button_style");
@@ -195,8 +201,8 @@ gtk_style_context_add_provider (buttoncontext,GTK_STYLE_PROVIDER(Provider), GTK_
 pos++; //changes the position 
 }
 }
-gtk_grid_set_column_spacing(GTK_GRID(grid), 3);
-gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
+gtk_grid_set_column_spacing(GTK_GRID(numberpad), 3);
+gtk_grid_set_row_spacing(GTK_GRID(numberpad), 3);
 gtk_grid_set_column_spacing(GTK_GRID(grid2), 3);
 gtk_grid_set_row_spacing(GTK_GRID(grid2), 3);
 gtk_grid_set_column_spacing(GTK_GRID(grid3), 3);
@@ -206,10 +212,13 @@ gtk_grid_set_row_spacing(GTK_GRID(grid4), 3);
 
 conversionbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
 
+pos=0;
+
 for (i=0; i < 4 ; i++) //for loop for the rows
 {
   labels = gtk_check_button_new_with_label(conversions[i]);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(labels), FALSE);
+  conversion_callback(labels, pos);
   labelcontext = gtk_widget_get_style_context(labels);
   gtk_style_context_add_class(labelcontext, "label_style");
   gtk_style_context_add_provider (labelcontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -228,7 +237,7 @@ gtk_box_pack_start(GTK_BOX(vbox), display, FALSE, FALSE, 0); //packs the display
 gtk_box_pack_start(GTK_BOX(vbox), conversionbox, FALSE, FALSE, 0); //packs the display into the vbox
 gtk_box_pack_start(GTK_BOX(vbox), gridbox, FALSE, FALSE, 0); //packs the table into the vbox
 gtk_box_pack_start(GTK_BOX(gridbox), gridvbox, FALSE, FALSE, 0); //packs the table into the vbox
-gtk_box_pack_start(GTK_BOX(gridvbox), grid, FALSE, FALSE, 0); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(gridvbox), numberpad, FALSE, FALSE, 0); //packs the table into the vbox
 gtk_box_pack_start(GTK_BOX(gridvbox), grid3, FALSE, FALSE, 3); //packs the table into the vbox
 gtk_box_pack_start(GTK_BOX(gridbox), grid2, FALSE, FALSE, 2); //packs the table into the vbox
 gtk_box_pack_start(GTK_BOX(gridbox), grid4, FALSE, FALSE, 5); //packs the table into the vbox
@@ -360,9 +369,119 @@ void secondary2_callback(GtkWidget *button, guint data) //this function is just 
     break;
     case 3: g_signal_connect(button, "clicked", G_CALLBACK(squareroot_callback), NULL);
     break;
+    case 5: g_signal_connect(button, "clicked", G_CALLBACK(factorial_callback), NULL);
+    break;
   }
 }
 
+void conversion_callback(GtkWidget *label, guint data)
+{
+  switch (data)
+  {
+    case 0:g_signal_connect(label, "clicked", G_CALLBACK(decimalconvert), NULL);
+    break;
+    case 1:g_signal_connect(label, "clicked", G_CALLBACK(decimaltobinary), NULL);
+    break;
+    case 3:g_signal_connect(label, "clicked", G_CALLBACK(decimaltooct), NULL);
+    break;
+  }
+}
+
+void decimaltobinary () //this function converts decimal to binary using if input%2=1 then output one else output 0
+{
+int base = 2;
+int i=0;
+int holder[128];
+int input = num1;
+if (binarycount ==1)
+{
+char preview[128];
+sprintf(preview,"%d", input); //copies num1 to the preview 
+gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+binarycount=0;
+}
+else 
+{
+while( input >=1)
+{
+  if(input%base >=1)
+  {
+    input/=2;
+    holder[i]=1;
+  }
+  else
+  {
+    input/=2;
+    holder[i]=0;
+  }
+  i++;
+}
+for (int j=i-1, i=0; j>=0; j-- ,i++)
+{
+
+if(i==0)
+{
+input = holder[j];
+}
+else
+{
+input*=10;
+input+=holder[j];
+}
+}
+}
+char preview[128];
+sprintf(preview,"%d", input); //copies num1 to the preview 
+gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+binarycount=1;
+}
+
+void decimaltooct () //this function converts decimal to binary using if input%2=1 then output one else output 0
+{
+int i=0;
+int holder[128];
+int input = num1;
+if (octcount ==1)
+{
+char preview[128];
+sprintf(preview,"%d", input); //copies num1 to the preview 
+gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+octcount=0;
+}
+else 
+{
+while( input >0)
+{
+    holder[i]= input % 8;
+    input/=8;
+  i++;
+}
+for (int j=i-1, i=0; j>=0; j-- ,i++)
+{
+
+if(i==0)
+{
+input = holder[j];
+}
+else
+{
+input*=10;
+input+=holder[j];
+}
+}
+}
+char preview[128];
+sprintf(preview,"%d", input); //copies num1 to the preview 
+gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+octcount=1;
+}
+
+void decimalconvert ()
+{
+char preview[32];
+sprintf(preview,"%lf", num1); //copies num1 to the preview 
+gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+}
 
 int leftshift(double base) //shifts the numbers to the left to account for multiple input numbers 
 {
@@ -615,6 +734,7 @@ void multiply_callback() //* button, sets all secondarys to 0 except for multcou
   powercount = 0;
   squaredcount = 0;
   squareroot = 0;
+  factorialcount = 0;
   num2 = num1;
 }
 void add_callback() //+ button, sets all secondarys to 0 except for addcount, makes num2=num1 so num1 can be reused
@@ -628,6 +748,7 @@ void add_callback() //+ button, sets all secondarys to 0 except for addcount, ma
   powercount = 0;
   squaredcount = 0;
   squareroot = 0;
+  factorialcount = 0;
   num2 = num1;
 }
 void subtract_callback()//- button, sets all secondarys to 0 except for subcount, makes num2=num1 so num1 can be reused
@@ -641,6 +762,7 @@ void subtract_callback()//- button, sets all secondarys to 0 except for subcount
   powercount = 0;
   squaredcount = 0;
   squareroot = 0;
+  factorialcount = 0;
   num2 = num1;
 }
 void divide_callback()// "/" button, sets all secondarys to 0 except for divcount, makes num2=num1 so num1 can be reused
@@ -654,6 +776,7 @@ void divide_callback()// "/" button, sets all secondarys to 0 except for divcoun
   powercount = 0;
   squaredcount = 0;
   squareroot = 0;
+  factorialcount = 0;
   num2 = num1;
 }
 void squared_callback()
@@ -667,6 +790,7 @@ void squared_callback()
   powercount = 0;
   squaredcount = 1;
   squareroot = 0;
+  factorialcount = 0;
   equals_callback();
 }
 void power_callback() //* button, sets all secondarys to 0 except for multcount, makes num2=num1 so num1 can be reused
@@ -680,6 +804,7 @@ void power_callback() //* button, sets all secondarys to 0 except for multcount,
   powercount = 1;
   squaredcount = 0;
   squareroot = 0;
+  factorialcount = 0;
   num2 = num1;
 }
 
@@ -694,6 +819,22 @@ void squareroot_callback()
   powercount = 0;
   squaredcount = 0;
   squareroot = 1;
+  factorialcount = 0;
+  equals_callback();
+}
+
+void factorial_callback()
+{
+  multcount = 0;
+  addcount = 0;
+  subcount = 0;
+  divcount = 0;
+  placementcount = 0;
+  decimalcount = 0;
+  powercount = 0;
+  squaredcount = 0;
+  squareroot = 0;
+  factorialcount = 1;
   equals_callback();
 }
 
@@ -728,6 +869,15 @@ if (squareroot > 0)
 {
   num1 = sqrt(num1);
 }
+if (factorialcount > 0)
+{
+  int holder=1;
+  for(long int i=1; i<=num1; i++)
+  {
+    holder*=i;
+  }
+  num1=holder;
+}
 sprintf(finaloutput, "%lf", num1); //copies num1 to preview 
 gtk_text_buffer_set_text (buffer, finaloutput, -1); //displays preview
 //once preview is displayed it sets all secondarys and placements to 0 
@@ -740,6 +890,7 @@ decimalcount = 0;
 powercount = 0;
 squaredcount = 0;
 squareroot = 0;
+factorialcount = 0;
 }
 void clear_callback() //clears all secondarys, variables, and placements 
 {
@@ -754,6 +905,7 @@ void clear_callback() //clears all secondarys, variables, and placements
   powercount = 0;
   squaredcount = 0;
   squareroot = 0;
+  factorialcount = 0;
   char preview[20];
   sprintf(preview, "%lf", num1);
   gtk_text_buffer_set_text (buffer, preview, -1);
