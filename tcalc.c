@@ -972,6 +972,7 @@ powercount = 0;
 squaredcount = 0;
 squareroot = 0;
 factorialcount = 0;
+percentcount = 0;
 }
 void clear_callback() //clears all secondarys, variables, and placements 
 {
@@ -987,6 +988,7 @@ void clear_callback() //clears all secondarys, variables, and placements
   squaredcount = 0;
   squareroot = 0;
   factorialcount = 0;
+  percentcount = 0;
   char preview[20];
   sprintf(preview, "%Lf", num1);
   gtk_text_buffer_set_text (buffer, preview, -1);
