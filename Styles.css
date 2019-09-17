@@ -18,14 +18,16 @@
 .menu_style {
 	background: rgba(40, 40, 40, 40);
 	color:white;
+    border:black;
     font-style:normal;
     font-weight: 500;
     font-size: 14px;
     padding: 7px 7px 7px 7px;
 }
 .button_style {
-	background: rgba(40, 40, 40, 40);
+	background: rgba(60, 60, 60, 60);
 	color:white;
+    border:black;
     font-style:normal;
     font-weight: 500;
     font-size: 14px;
