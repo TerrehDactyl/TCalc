@@ -1,4 +1,4 @@
-TCALC
+TCalc
 -
 What is Tcalc?
 -
