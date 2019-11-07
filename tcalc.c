@@ -1,8 +1,8 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <math.h>
-
-//compile with gcc -Wall -g -lm calc.c -o calc `pkg-config --cflags --libs gtk+-2.0`
+#define arraysize(x)  (sizeof(x) / sizeof((x)[0]))
+//compile with gcc -Wall -g -lm calc.c -o calc `pkg-config --cflags --libs gtk+-3.0`
 //declarations for the functions used 
 int leftshift(double base);
 void button0_callback();
@@ -20,7 +20,7 @@ void add_callback();
 void subtract_callback();
 void divide_callback();
 void equals_callback();
-void clear_callback();
+void clear_input();
 void decimal_callback();
 void power_callback();
 void squared_callback();
@@ -29,51 +29,86 @@ void secondary_callback(GtkWidget *button, guint data);
 void main_callback(GtkWidget *fixed, guint data);
 void main2_callback(GtkWidget *button, guint data);
 void secondary2_callback(GtkWidget *button, guint data);
-void decimalconverter ();
-void octconverter ();
-void binaryconverter ();
+void modulo();
+void decimalconverter();
+void octconverter();
+void binaryconverter();
 void hexconverter();
 void percent_callback();
 void factorial_callback();
-void conversion_callback(GtkWidget *label, guint data);
+void attach_conversion_callback(GtkWidget *label, void *conversion_callback_arr);
 gboolean keyboard_callback (GtkWidget *widget, GdkEventKey *event, gpointer user_data);
+void clear_count();
+void button_connect_callback(GtkWidget *button, void *button_callback);
+void add_context(const gchar *style, GtkWidget *widget);
+void set_spacing(GtkWidget *widget, int colspace, int rowspace);
+void createmenu(GtkWidget *root_menu, const gchar *style[], gchar *menu_array[], int arraylen, void *callback[]);
+void createsinglesizegrid(GtkWidget *grid, gchar *labels[], void *callback[], int rows, int columns, const gchar *style[], int stylenumber);
+void createtwosizegrid(GtkWidget *grid, gchar *labels[], void  *callback[], int rows, int columns,  int normwidth, int normlen, int specwidth, int speclen, int range, const gchar *style[], int stylenumber);
+void preview();
+void doesallthework(int ButtonNumber);
+void undo();
+void redo();
+void copy();
+void cut();
+void menu_callback(GtkWidget *menu_items, void *callback);
+void nullcallback();
+void pi();
+void phi();
+void euler();
 
-//I need to find a way to fix this, this is a problem, variables are not supposed to be outside of main.
-long double num1, num2;
-// possibly looking into bool functions for all of these
-int multcount, addcount, subcount, divcount, placementcount, decimalcount;
-int percentcount, powercount, squaredcount,  squareroot, factorialcount;
-int binarycount = 0, octcount = 0, hexcount = 0;
+struct counting_variables
+{
+  int mult, add, sub, div, placement, decimal, percent, power, squared, squareroot, factorial, mod, hist, undo;
+}count;
+
+struct input_variables
+{
+  long double num1, num2;
+  long double history[128];
+  char preview[20];
+}input;
+
+struct Global_Widgets
+{
 GtkWidget *display; //widget for the display 
 GtkTextBuffer *buffer; //widget for the text 
+}gwidget;
 
 int main(int argc, char *argv[])  //gotta start somewhere
 {
 GtkWidget *window; //widget for the window
-GtkWidget *numberpad, *grid2, *grid3, *grid4;
-GtkWidget *gridbox;
+GtkWidget *left_keypad, *right_keypad, *bottom_keypad, *adv_operator_keypad;
+GtkWidget *gridhbox;
 GtkWidget *gridvbox;
 GtkWidget *vbox; //widget for the vertical box
-GtkWidget *button; //widget for the buttons 
-GtkCssProvider* Provider = gtk_css_provider_new();
-GtkStyleContext *displaycontext, *buttoncontext, *windowcontext, *labelcontext, *menucontext;
 GtkWidget *labels;
 GtkWidget *conversionbox;
-GtkWidget *menu;
+GtkWidget *decimalbutton;
 GtkWidget *menu_bar;
 GtkWidget *root_menu;
-
-gchar *values[20] = {"%", "/", "*", "7", "8", "9","4", "5", "6","1", "2", "3"}; //labels for the buttons 
-
-gchar *misc[2] = {"0", "."};
-
-gchar *secondarys[20] = {"-", "+", "="};
-gchar *secondarys2[20] = {"CE", "x2", "^", "sqrt", "Mod", "x!", "(", ")"};
-gchar *conversions[4] = {"Dec", "Bin", "Hex", "Oct"};
-gchar *headers [20] = {"File", "Edit", "Constants", "Settings", "Help"};
-int i = 0; //rows
-int j = 0; //columns
-int pos = 0; //position in the array
+gchar *left_keypad_labels[] = {"%", "/", "*", "7", "8", "9","4", "5", "6","1", "2", "3"}; //labels for the buttons 
+gchar *bottom_keypad_labels[] = {"0", "."};
+gchar *right_keypad_labels[] = {"-", "+", "="};
+gchar *adv_operator_labels[] = {"CE", "x2", "^", "sqrt", "Mod", "x!", "Undo", "Redo"};
+gchar *conversions[] = {"Dec", "Bin", "Hex", "Oct"};
+gchar *headers [] = {"File", "Edit", "Constants", "Settings", "Help"};
+gchar *file_menu [] = {"Quit"};
+gchar *edit_menu [] = {"Undo", "Redo", "Cut", "Copy"};
+gchar *constants_menu [] = {"Pi", "Euler Number", "Golden Ratio"};
+const gchar *style [] = {"menu_style", "display_style", "window_style", "button_style", "label_style", "menu_style", "operators_style"};
+size_t file_len = arraysize(file_menu);
+size_t edit_len = arraysize(edit_menu);
+size_t constants_len = arraysize(constants_menu);
+void *left_keypad_callback[] = {percent_callback, divide_callback, multiply_callback, button7_callback, button8_callback, button9_callback,
+  button4_callback, button5_callback, button6_callback, button1_callback, button2_callback, button3_callback};
+void *bottom_keypad_callback[] = {button0_callback, decimal_callback};
+void *right_keypad_callback[] = {subtract_callback, add_callback, equals_callback};
+void *adv_operator_keypad_callback[] = {clear_input, squared_callback, power_callback, squareroot_callback, modulo,factorial_callback, undo, redo};
+void *conversion_callback_arr[] = {decimalconverter, binaryconverter, hexconverter, octconverter};
+void *edit_callback[] = {undo, redo, cut, copy};
+void *file_callback[] = {gtk_main_quit};
+void *constants_callback[] = {pi, euler, phi};
 
 gtk_init(&argc, &argv); //starting gtk 
 
@@ -83,175 +118,180 @@ gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER); //opens the win
 gtk_container_set_border_width(GTK_CONTAINER(window), 5); //sets the border size of the window
 g_signal_connect(window, "key-release-event", G_CALLBACK(keyboard_callback), NULL);
 
-menu = gtk_menu_new ();
 menu_bar = gtk_menu_bar_new ();
 char buf[128];
-for (i = 0; i < 5; i++)
+for (int i = 0; i < 5; i++)
 {
   sprintf (buf, "%s", headers[i]);
   root_menu = gtk_menu_item_new_with_label (buf);
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (root_menu), menu);
+
+  switch (i)
+  {
+    case 0: createmenu(root_menu, style, file_menu, file_len, file_callback);
+    break;
+    case 1: createmenu(root_menu, style, edit_menu, edit_len, edit_callback);
+    break;
+    case 2: createmenu(root_menu, style, constants_menu, constants_len, constants_callback);
+  }
   gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), root_menu);
-  menucontext = gtk_widget_get_style_context(root_menu);
-  gtk_style_context_add_class(menucontext, "menu_style");
-  gtk_style_context_add_provider (menucontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+  add_context(style[0], root_menu);
 }
 
-display = gtk_text_view_new (); //sets the display widget as a text display 
-buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (display)); //sets the buffer widget to the text buffer of display
-gtk_widget_set_size_request(display, 150, 40); //sets the size of the display 
-
-gtk_css_provider_load_from_path(GTK_CSS_PROVIDER(Provider), "Styles.css", NULL);
-displaycontext = gtk_widget_get_style_context(display);
-gtk_style_context_add_class(displaycontext, "display_style");
-gtk_style_context_add_provider (displaycontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
-windowcontext = gtk_widget_get_style_context(window);
-gtk_style_context_add_class(windowcontext, "window_style");
-gtk_style_context_add_provider (windowcontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+gwidget.display = gtk_text_view_new (); //sets the display widget as a text display 
+gwidget.buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW ( gwidget.display)); //sets the gwidget.buffer widget to the text gwidget.buffer of display
+gtk_widget_set_size_request( gwidget.display, 150, 40); //sets the size of the display 
 gtk_widget_add_events(window, GDK_KEY_PRESS_MASK);
 
-numberpad= gtk_grid_new(); //sets the table widget as a 4x4 arrangement without autosizing
+left_keypad= gtk_grid_new(); //sets the table widget as a 4x4 arrangement without autosizing
+createsinglesizegrid(left_keypad, left_keypad_labels, left_keypad_callback, 4, 3, style, 6);
+set_spacing(left_keypad, 3, 3);
 
-//these for loops are for creating the buttons and attaching them to their callbacks 
-for (i=0; i < 4; i++) //for loop for the rows
-{
-for (j=0; j < 3; j++) //for loop for the columns
-{
-button = gtk_button_new_with_label(values[pos]); //sets each button label to the respective button 
-main_callback(button, pos); //attaches the button to the respective callback
-gtk_grid_attach(GTK_GRID(numberpad), button, j, i, 1, 1); //sets the defaults for creating each table button
-gtk_widget_set_size_request(button, 40, 40); //sets the size of the buttons
-buttoncontext = gtk_widget_get_style_context(button);
-gtk_style_context_add_class(buttoncontext, "button_style");
-gtk_style_context_add_provider (buttoncontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+right_keypad = gtk_grid_new();
+createtwosizegrid(right_keypad, right_keypad_labels, right_keypad_callback, 3, 1, 40, 84, 40, 40, 0, style, 6);
+set_spacing(right_keypad, 3, 3);
 
-pos++; //changes the position 
-}
-}
-grid2 = gtk_grid_new();
-pos = 0;
-i = 0;
-j = 0;
+bottom_keypad = gtk_grid_new();
+createtwosizegrid(bottom_keypad, bottom_keypad_labels, bottom_keypad_callback, 1, 2, 40, 40, 83, 40, 0, style, 6);
+set_spacing(bottom_keypad, 3, 3);
 
-for (i=0; i < 3 ; i++) //for loop for the rows
-{
-for (j=0; j < 1; j++) //for loop for the columns
-{
-button = gtk_button_new_with_label(secondarys[pos]); //sets each button label to the respective button 
-secondary_callback(button, pos); //attaches the button to the respective callback
-gtk_grid_attach(GTK_GRID(grid2), button, j, i, 1, 1); //sets the defaults for creating each table button
-if (pos ==0)
-{
-gtk_widget_set_size_request(button, 40, 40); //sets the size of the buttons
-}
-else 
-{
-gtk_widget_set_size_request(button, 40, 84); //sets the size of the buttons
-}
-buttoncontext = gtk_widget_get_style_context(button);
-gtk_style_context_add_class(buttoncontext, "button_style");
-gtk_style_context_add_provider (buttoncontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+adv_operator_keypad = gtk_grid_new();
+createsinglesizegrid(adv_operator_keypad, adv_operator_labels, adv_operator_keypad_callback, 4, 2, style, 6);
+set_spacing(adv_operator_keypad, 3, 3);
 
-pos++; //changes the position 
-}
-}
-
-grid3 = gtk_grid_new();
-pos = 0;
-i = 0;
-j = 0;
-
-for (i=0; i < 1 ; i++) //for loop for the rows
-{
-for (j=0; j < 2; j++) //for loop for the columns
-{
-button = gtk_button_new_with_label(misc[pos]); //sets each button label to the respective button 
-main2_callback(button, pos); //attaches the button to the respective callback
-gtk_grid_attach(GTK_GRID(grid3), button, j, i, 1, 1); //sets the defaults for creating each table button
-if (pos ==0)
-{
-gtk_widget_set_size_request(button, 83, 40); //sets the size of the buttons
-}
-else 
-{
-gtk_widget_set_size_request(button, 40, 40); //sets the size of the buttons
-}
-buttoncontext = gtk_widget_get_style_context(button);
-gtk_style_context_add_class(buttoncontext, "button_style");
-gtk_style_context_add_provider (buttoncontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
-
-pos++; //changes the position 
-}
-}
-
-grid4 = gtk_grid_new();
-pos = 0;
-i = 0;
-j = 0;
-
-for (i=0; i < 5 ; i++) //for loop for the rows
-{
-for (j=0; j < 2; j++) //for loop for the columns
-{
-button = gtk_button_new_with_label(secondarys2[pos]); //sets each button label to the respective button 
-secondary2_callback(button, pos); //attaches the button to the respective callback
-gtk_grid_attach(GTK_GRID(grid4), button, j, i, 1, 1); //sets the defaults for creating each table button
-gtk_widget_set_size_request(button, 40, 40); //sets the size of the buttons
-buttoncontext = gtk_widget_get_style_context(button);
-gtk_style_context_add_class(buttoncontext, "button_style");
-gtk_style_context_add_provider (buttoncontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
-pos++; //changes the position 
-}
-}
-gtk_grid_set_column_spacing(GTK_GRID(numberpad), 3);
-gtk_grid_set_row_spacing(GTK_GRID(numberpad), 3);
-gtk_grid_set_column_spacing(GTK_GRID(grid2), 3);
-gtk_grid_set_row_spacing(GTK_GRID(grid2), 3);
-gtk_grid_set_column_spacing(GTK_GRID(grid3), 3);
-gtk_grid_set_row_spacing(GTK_GRID(grid3), 3);
-gtk_grid_set_column_spacing(GTK_GRID(grid4), 3);
-gtk_grid_set_row_spacing(GTK_GRID(grid4), 3);
+add_context(style[1],  gwidget.display);
+add_context(style[2], window);
+add_context(style[2], menu_bar);
 
 conversionbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
 
-pos=0;
+decimalbutton = gtk_radio_button_new_with_label(NULL, conversions[0]);
+attach_conversion_callback(decimalbutton, conversion_callback_arr[0]);
+add_context(style[4], decimalbutton);
+gtk_box_pack_start(GTK_BOX(conversionbox), decimalbutton, FALSE, FALSE, 0); //packs the display into the vbox
 
-for (i=0; i < 4 ; i++) //for loop for the rows
+for (int i=1; i < arraysize(conversions); i++) //for loop for the rows
 {
-  labels = gtk_check_button_new_with_label(conversions[i]);
+  labels = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(decimalbutton), conversions[i]);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(labels), FALSE);
-  conversion_callback(labels, pos);
-  labelcontext = gtk_widget_get_style_context(labels);
-  gtk_style_context_add_class(labelcontext, "label_style");
-  gtk_style_context_add_provider (labelcontext,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+  attach_conversion_callback(labels, conversion_callback_arr[i]);
+  add_context(style[4], labels);
 gtk_box_pack_start(GTK_BOX(conversionbox), labels, FALSE, FALSE, 0); //packs the display into the vbox
-
-pos++; //changes the position 
 }
-
-gridbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+gridhbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
 gridvbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
 
 vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1); //creates a vbox without autosizing 
+
 gtk_container_add(GTK_CONTAINER(window), vbox); //adds the vbox to the window 
 gtk_box_pack_start (GTK_BOX (vbox), menu_bar, FALSE, FALSE, 2);
-gtk_box_pack_start(GTK_BOX(vbox), display, FALSE, FALSE, 0); //packs the display into the vbox
+gtk_box_pack_start(GTK_BOX(vbox),  gwidget.display, FALSE, FALSE, 0); //packs the display into the vbox
 gtk_box_pack_start(GTK_BOX(vbox), conversionbox, FALSE, FALSE, 0); //packs the display into the vbox
-gtk_box_pack_start(GTK_BOX(vbox), gridbox, FALSE, FALSE, 0); //packs the table into the vbox
-gtk_box_pack_start(GTK_BOX(gridbox), gridvbox, FALSE, FALSE, 0); //packs the table into the vbox
-gtk_box_pack_start(GTK_BOX(gridvbox), numberpad, FALSE, FALSE, 0); //packs the table into the vbox
-gtk_box_pack_start(GTK_BOX(gridvbox), grid3, FALSE, FALSE, 3); //packs the table into the vbox
-gtk_box_pack_start(GTK_BOX(gridbox), grid2, FALSE, FALSE, 2); //packs the table into the vbox
-gtk_box_pack_start(GTK_BOX(gridbox), grid4, FALSE, FALSE, 5); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(vbox), gridhbox, FALSE, FALSE, 0); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(gridhbox), gridvbox, FALSE, FALSE, 0); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(gridvbox), left_keypad, FALSE, FALSE, 0); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(gridvbox), bottom_keypad, FALSE, FALSE, 3); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(gridhbox), right_keypad, FALSE, FALSE, 2); //packs the table into the vbox
+gtk_box_pack_start(GTK_BOX(gridhbox), adv_operator_keypad, FALSE, FALSE, 5); //packs the table into the vbox
 
-g_signal_connect(G_OBJECT(window), "destroy", //these lines are for the x at the top of the screen to close the window
-  G_CALLBACK(gtk_main_quit), NULL);
+g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
 gtk_widget_show_all(window); //shows all widgets 
 
 gtk_main();//gtk main, this is the main loop of GTK
 
 return 0;
+}
+
+void nullcallback(){}
+
+void createtwosizegrid(GtkWidget *grid, gchar *labels[], void  *callback[], int rows, int columns,  int normwidth, int normlen, int specwidth, int speclen, int range, const gchar *style[], int stylenumber)
+{
+  GtkWidget *button;
+  int pos = 0;
+for (int i=0; i < rows ; i++) //for loop for the rows
+{
+for (int j=0; j < columns; j++) //for loop for the columns
+{ 
+button = gtk_button_new_with_label(labels[pos]); //sets each button label to the respective button 
+button_connect_callback(button, callback[pos]); //attaches the button to the respective callback
+gtk_grid_attach(GTK_GRID(grid), button, j, i, 1, 1); //sets the defaults for creating each table button
+if (pos <= range)
+{
+gtk_widget_set_size_request(button, specwidth, speclen); //sets the size of the buttons
+}
+else 
+{
+gtk_widget_set_size_request(button, normwidth, normlen); //sets the size of the buttons
+}
+add_context(style[stylenumber], button);
+pos++;
+}
+}
+}
+
+void set_spacing(GtkWidget *widget, int colspace, int rowspace)
+{
+  gtk_grid_set_column_spacing(GTK_GRID(widget), colspace);
+  gtk_grid_set_row_spacing(GTK_GRID(widget), rowspace);
+}
+
+void add_context(const gchar *style, GtkWidget *widget)
+{
+  GtkCssProvider* Provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_path(GTK_CSS_PROVIDER(Provider), "Styles.css", NULL);
+  GtkStyleContext *context = gtk_widget_get_style_context(widget);
+  gtk_style_context_add_class(context, style);
+  gtk_style_context_add_provider (context,GTK_STYLE_PROVIDER(Provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+}
+
+void createsinglesizegrid(GtkWidget *grid, gchar *labels[], void *callback[], int rows, int columns, const gchar *style[], int stylenumber)
+{
+  int pos = 0;
+GtkWidget *button; //widget for the buttons 
+for (int i=0; i < rows; i++) //for loop for the rows
+{
+for (int j=0; j < columns; j++) //for loop for the columns
+{
+button = gtk_button_new_with_label(labels[pos]); //sets each button label to the respective button 
+button_connect_callback(button, callback[pos]); //attaches the button to the respective callback
+gtk_grid_attach(GTK_GRID(grid), button, j, i, 1, 1); //sets the defaults for creating each table button
+gtk_widget_set_size_request(button, 40, 40); //sets the size of the buttons
+add_context(style[stylenumber], button);
+pos++; //changes the position 
+}
+}
+}
+
+void button_connect_callback(GtkWidget *button, void *button_callback)
+{
+  g_signal_connect(button, "clicked", G_CALLBACK(button_callback), NULL);
+}
+
+void createmenu(GtkWidget *root_menu, const gchar *style[], gchar *menu_array[], int arraylen, void *callback[])
+{
+  GtkWidget *menu;
+  GtkWidget *menu_items;
+  char buf[128];
+  menu = gtk_menu_new();
+  add_context(style[5], menu);
+  for(int j = 0; j<arraylen; j++)
+  {
+    sprintf (buf, "%s", menu_array[j]);
+    menu_items = gtk_menu_item_new_with_label(buf);
+    menu_callback(menu_items, callback[j]);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_items);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(root_menu), menu);
+  }
+}
+
+void menu_callback(GtkWidget *menu_items, void *callback)
+{
+  g_signal_connect_swapped(menu_items, "activate", G_CALLBACK(callback), NULL);
+}
+
+void attach_conversion_callback(GtkWidget *label, void *conversion_callback)
+{
+  g_signal_connect(label, "clicked", G_CALLBACK(conversion_callback), NULL);
 }
 
 gboolean keyboard_callback (GtkWidget *widget, GdkEventKey *event, gpointer user_data)
@@ -313,118 +353,24 @@ switch (event->keyval) //full list of system keys here https://gitlab.gnome.org/
 return FALSE;
 }
 
-void main_callback(GtkWidget *button, guint data) //this function is just a switch for all of the button callbacks. 
-{
-  switch (data)
-  {
-    case 0:  g_signal_connect(button, "clicked", G_CALLBACK(percent_callback), NULL);
-    break;
-    case 1:  g_signal_connect(button, "clicked", G_CALLBACK(divide_callback), NULL);
-    break;
-    case 2:  g_signal_connect(button, "clicked", G_CALLBACK(multiply_callback), NULL); 
-    break;
-    case 3:  g_signal_connect(button, "clicked", G_CALLBACK(button7_callback), NULL);
-    break;
-    case 4:  g_signal_connect(button, "clicked", G_CALLBACK(button8_callback), NULL);
-    break;
-    case 5:  g_signal_connect(button, "clicked", G_CALLBACK(button9_callback), NULL);
-    break;
-    case 6:  g_signal_connect(button, "clicked", G_CALLBACK(button4_callback ), NULL); 
-    break;
-    case 7:  g_signal_connect(button, "clicked", G_CALLBACK(button5_callback), NULL);
-    break;
-    case 8:  g_signal_connect(button, "clicked", G_CALLBACK(button6_callback), NULL);
-    break;
-    case 9:  g_signal_connect(button, "clicked", G_CALLBACK(button1_callback), NULL);
-    break;
-    case 10:  g_signal_connect(button, "clicked", G_CALLBACK(button2_callback), NULL); 
-    break; 
-    case 11:  g_signal_connect(button, "clicked", G_CALLBACK(button3_callback ), NULL); 
-    break;
-  }
-}
-
-void main2_callback(GtkWidget *button, guint data) //this function is just a switch for all of the button callbacks. 
-{
-  switch (data)
-  {
-    case 0:  g_signal_connect(button, "clicked", G_CALLBACK(button0_callback), NULL);
-    break;
-    case 1:  g_signal_connect(button, "clicked", G_CALLBACK(decimal_callback), NULL);
-    break;
-  }
-}
-
-void secondary_callback(GtkWidget *button, guint data) //this function is just a switch for all of the button callbacks. 
-{
-  switch (data)
-  {
-    case 0:  g_signal_connect(button, "clicked", G_CALLBACK(subtract_callback), NULL);
-    break;
-    case 1:  g_signal_connect(button, "clicked", G_CALLBACK(add_callback), NULL);
-    break;
-    case 2:  g_signal_connect(button, "clicked", G_CALLBACK(equals_callback), NULL);
-    break;
-  }
-}
-void secondary2_callback(GtkWidget *button, guint data) //this function is just a switch for all of the button callbacks. 
-{
-  switch (data)
-  {
-    case 0:  g_signal_connect(button, "clicked", G_CALLBACK(clear_callback), NULL);
-    break;
-    case 1: g_signal_connect(button, "clicked", G_CALLBACK(squared_callback), NULL);
-    break;
-    case 2: g_signal_connect(button, "clicked", G_CALLBACK(power_callback), NULL);
-    break;
-    case 3: g_signal_connect(button, "clicked", G_CALLBACK(squareroot_callback), NULL);
-    break;
-    case 5: g_signal_connect(button, "clicked", G_CALLBACK(factorial_callback), NULL);
-    break;
-  }
-}
-
-void conversion_callback(GtkWidget *label, guint data)
-{
-  switch (data)
-  {
-    case 0:g_signal_connect(label, "clicked", G_CALLBACK(decimalconverter), NULL);
-    break;
-    case 1:g_signal_connect(label, "clicked", G_CALLBACK(binaryconverter), NULL);
-    break;
-    case 2:g_signal_connect(label, "clicked", G_CALLBACK(hexconverter), NULL);
-    break;
-    case 3:g_signal_connect(label, "clicked", G_CALLBACK(octconverter), NULL);
-    break;
-  }
-}
-
-void binaryconverter () //this function converts decimal to binary using if input%2=1 then output one else output 0
+void binaryconverter () //this function converts decimal to binary using if output%2=1 then output one else output 0
 {
   int base = 2;
   int i=0;
-  int holder[128];
-  long int input = num1;
-  if (binarycount ==1)
+  char preview[128];
+  long int output = input.num1;
+
+  while( output >=1)
   {
-    char preview[128];
-sprintf(preview,"%ld", input); //copies num1 to the preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
-binarycount=0;
-}
-else 
-{
-  while( input >=1)
-  {
-    if(input%base >=1)
+    if(output%base >=1)
     {
-      input/=2;
-      holder[i]=1;
+      output/=2;
+      preview[i]=1;
     }
     else
     {
-      input/=2;
-      holder[i]=0;
+      output/=2;
+      preview[i]=0;
     }
     i++;
   }
@@ -433,79 +379,59 @@ else
 
     if(i==0)
     {
-      input = holder[j];
+      output = preview[j];
     }
     else
     {
-      input*=10;
-      input+=holder[j];
+      output*=10;
+      output+=preview[j];
     }
   }
-}
-char preview[128];
-sprintf(preview,"%ld", input); //copies num1 to the preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
-binarycount=1;
+sprintf(preview,"%ld", output); //copies input.num1 to the preview 
+gtk_text_buffer_set_text ( gwidget.buffer, preview, -1); //displays input.num1 
 }
 
 void hexconverter()
 {
-  long int decimalNumber, temp;
+  long int temp;
   int i;
   char hexadecimalinput[16];
-  char preview[16];
-  long int input = num1;
-  decimalNumber = input;
+  char preview[128];
+  long int decimalNumber = input.num1;
 
-  if (hexcount ==1)
+  for (i=0; decimalNumber!=0; i++) 
   {
-    char preview[128];
-  sprintf(preview,"%ld", input); //copies num1 to the preview 
-  gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
-  hexcount=0;
-}
-for (i=0; decimalNumber!=0; i++) 
-{
-  temp = decimalNumber % 16;
+    temp = decimalNumber % 16;
 //To convert integer into character
-  if( temp < 10)
-  {
-    temp =temp + 48; 
+    if( temp < 10)
+    {
+      temp =temp + 48; 
+    }
+    else
+    {
+      temp = temp + 55;
+    }
+    hexadecimalinput[i] = temp;
+    decimalNumber = decimalNumber / 16;
   }
-  else
+  for (int j=i-1, i=0; j>=0; j--)
   {
-    temp = temp + 55;
+    preview[j] = hexadecimalinput[i];
+    i++;
   }
-  hexadecimalinput[i] = temp;
-  decimalNumber = decimalNumber / 16;
-}
-for (int j=i-1, i=0; j>=0; j--)
-{
-  preview[j] = hexadecimalinput[i];
-  i++;
-}
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
-hexcount=1;
+gtk_text_buffer_set_text ( gwidget.buffer, preview, -1); //displays input.num1 
 }
 
-void octconverter () //this function converts decimal to binary using if input%2=1 then output one else output 0
+void octconverter () //this function converts decimal to binary using if output%2=1 then output one else output 0
 {
   int i=0;
-  int holder[128];
-  int input = num1;
-  if (octcount ==1)
+  int output = input.num1;
+  char preview[128];
+
+  while( output >0)
   {
-    char preview[128];
-sprintf(preview,"%d", input); //copies num1 to the preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
-octcount=0;
-}
-else 
-{
-  while( input >0)
-  {
-    holder[i]= input % 8;
-    input/=8;
+    preview[i]= output % 8;
+    output/=8;
     i++;
   }
   for (int j=i-1, i=0; j>=0; j-- ,i++)
@@ -513,491 +439,324 @@ else
 
     if(i==0)
     {
-      input = holder[j];
+      output = preview[j];
     }
     else
     {
-      input*=10;
-      input+=holder[j];
+      output*=10;
+      output+=preview[j];
     }
   }
-}
-char preview[128];
-sprintf(preview,"%d", input); //copies num1 to the preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
-octcount=1;
+sprintf(preview,"%d", output); //copies input.num1 to the preview 
+gtk_text_buffer_set_text ( gwidget.buffer, preview, -1); //displays input.num1 
 }
 
 void decimalconverter ()
 {
-  char preview[32];
-sprintf(preview,"%Lf", num1); //copies num1 to the preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+  preview();
 }
 
-int leftshift(double base) //shifts the numbers to the left to account for multiple input numbers 
+int leftshift(double base) //shifts the numbers to the left to account for multiple output numbers 
 {
   base=base*10;
   return base;
 }
+void doesallthework(int ButtonNumber) //callback for number 1 
+{
+if( count.placement >0) //if the placement is higher than 0
+{
+input.num1=leftshift(input.num1); //shift the number placement 1 to the left
+input.num1=input.num1+ButtonNumber; //add 1
+count.placement++; //add 1 to the placement 
+}
+if (  count.placement == 0 &&  count.decimal ==0) //if this is the first number input
+{
+input.num1=ButtonNumber; //that number =1
+count.placement++; //placement increases
+}
+else if( count.decimal != 0) //if you press the decimal button, it does 10^-1, 10^-2 etc
+{
+  double holder = pow(10,  count.decimal)*ButtonNumber;
+  input.num1+=holder;
+  count.decimal--;
+}
+input.history[count.hist] = input.num1;
+count.hist++;
+preview();
+}
 
 void button1_callback() //callback for number 1 
 {
-if(placementcount >0) //if the placement is higher than 0
-{
-num1=leftshift(num1); //shift the number placement 1 to the left
-num1=num1+1; //add 1
-placementcount++; //add 1 to the placement 
+  doesallthework(1);
 }
-if ( placementcount == 0 && decimalcount ==0) //if this is the first number input
-{
-num1=1; //that number =1
-placementcount++; //placement increases
-}
-else if(decimalcount != 0) //if you press the decimal button, it does 10^-1, 10^-2 etc
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount);
-num1+=holder;
-decimalcount--;
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies the number to the preview variable 
-gtk_text_buffer_set_text (buffer, preview, -1); //sends the preview to the display 
-}
+
 void button2_callback() //callback for number 2
 {
-if(placementcount >0) //if the placement is higher than 0
-{
-num1=leftshift(num1); //shift the bits to the left
-num1=num1+2; //add 2
-placementcount++; //increase placement 
+  doesallthework(2);
 }
-if (placementcount == 0 && decimalcount ==0) //if first button to be pressed
-{
-num1=2; //that num =2
-placementcount++; //increase placement 
-}
-else if(decimalcount <0) //if decimal pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*2; //shifts to the right via 2(10^-1) 2(10^-2), etc 
-num1+=holder; //adds it to number 1 
-decimalcount--; //decreases the decimal placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //sets num 1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); // displays preview 
-}
+
 void button3_callback () //callback for number 3 
 {
-if(placementcount >0) //if placement is over 0 
-{
-num1=leftshift(num1); //shifts placement of number to the left
-num1=num1+3; //adds 3 
-placementcount++; //increases placement 
+  doesallthework(3);
 }
-else if(decimalcount <0) // if decimal pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*3; //shifts bits to the right via 3(10^-1), 3(10^-2), etc
-num1+=holder; //adds the number to num1 
-decimalcount--;//decreases the decimal count 
-}
-else if (placementcount == 0 &&decimalcount ==0) //if first number
-{
-num1=3; //number equals 3
-placementcount++; // increase placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //sets preview to num1
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
-}
+
 void button4_callback () //button 4 callback 
 {
-if(placementcount >0) //if placement is over 0
-{
-num1=leftshift(num1); //shifts bits to the left 
-num1=num1+4; //adds 4
-placementcount++; //increases placement 
+  doesallthework(4);
 }
-else if(decimalcount <0) //if decimal is pressed
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*4; //shifts number to the right 
-num1+=holder; //adds to num1 
-decimalcount--; //decreases decimal count 
-}
-else if (placementcount == 0 && decimalcount == 0) //if first button pressed 
-{
-num1=4; //num1 =4
-placementcount++; //increases placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies num1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
-}
+
 void button5_callback() //callback for number 5
 {
-if(placementcount >0) //if placement is over 0
-{
-num1=leftshift(num1); //shifts number to the left 
-num1=num1+5; //adds 5 
-placementcount++; //increases placment 
+  doesallthework(5);
 }
-else if(decimalcount <0) //if decimal is pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*5; //shifts number to the right 
-num1+=holder; //adds it to num1 
-decimalcount--; //decreases decimal count 
-}
-else if (placementcount == 0 && decimalcount == 0) //if first button pressed 
-{
-num1=5; //num1 is 5 
-placementcount++; //increases placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies num1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
-}
+
 void button6_callback() //callback function for button 6
 {
-if(placementcount >0) //if placement is over 0
-{
-num1=leftshift(num1); //left shift the number 
-num1=num1+6; //add 6
-placementcount++; //increase placement 
+  doesallthework(6);
 }
-else if(decimalcount <0) //if decimal pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*6; //right shift 
-num1+=holder; //add to num1 
-decimalcount--; //decrease decimal count 
-}
-else if (placementcount == 0 && decimalcount == 0) //if first button pressed 
-{
-num1=6; //num1 is 6 
-placementcount++; //placement increases 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1);//copies num1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //diplays preview 
-}
+
 void button7_callback() //number 7 callback 
 {
-if(placementcount >0) //if placement is over 0
-{
-num1=leftshift(num1); //left shift the number 
-num1=num1+7; //add 7
-placementcount++; //increase placement 
+  doesallthework(7);
 }
-else if(decimalcount <0) //if decimal pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*7; //right shift the number 7 by the amount of decimals 
-num1+=holder;  //add to num1 
-decimalcount--; //decrease decimal count 
-}
-else if ( placementcount == 0 && decimalcount ==0) //if first button pressed 
-{
-num1=7; //num1 is 7
-placementcount++; // increase placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies num1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
-}
+
 void button8_callback() //number 8 callback 
 {
-if(placementcount >0) //if placment is over 0
-{
-num1=leftshift(num1); //left shift the number 
-num1=num1+8; //add 8
-placementcount++; //increase placement 
+  doesallthework(8);
 }
-else if(decimalcount <0) //if decimal pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*8; //right shift 8 by the decimal number 
-num1+=holder; //add to num1 
-decimalcount--; //decrease decimal count 
-}
-else if (placementcount == 0 && decimalcount == 0) //if first button pressed 
-{
-num1=8; //num1 is 8 
-placementcount++; //increase the placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies num1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
-}
+
 void button9_callback() //number 9 callback 
 {
-if(placementcount >0) // if placement is over 0
-{
-num1=leftshift(num1); //left shift num1 
-num1=num1+9; //add 9
-placementcount++; //increase placement 
+  doesallthework(9);
 }
-else if(decimalcount <0) //if decimal pressed 
-{
-double holder = 0; //declares holder as type double
-holder= pow(10, decimalcount)*9; //right shift 9 by the decimal count 
-num1+=holder; // adds to num1 
-decimalcount--; //decreases decimal count 
-}
-else if (placementcount == 0 && decimalcount ==0) //if first button pressed 
-{
-num1=9; //num is 9 
-placementcount++; //increase placement 
-}
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies placement to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
-}
+
 void button0_callback() //button 0 callback 
 {
-if(placementcount >0) //if placement is over 0
+if( count.placement >0) //if placement is over 0
 {
-num1*=10; //left shift the number 
+input.num1*=10; //left shift the number 
 }
-else if (decimalcount <0) //if decimal pressed 
+else if ( count.decimal <0) //if decimal pressed 
 {
-decimalcount--; //decrease decimal count 
+count.decimal--; //decrease decimal count 
 }
-else if (placementcount == 0 && decimalcount ==0) //if first number pressed 
+else if ( count.placement == 0 &&  count.decimal ==0) //if first number pressed 
 {
-num1=0; //num is 0
+input.num1=0; //num is 0
 }
-char preview[17];
-sprintf(preview, "%Lf", num1); //copies num1 to the preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays num1 
+preview();
 }
-void multiply_callback() //* button, sets all secondarys to 0 except for multcount, makes num2=num1 so num1 can be reused
+
+void multiply_callback() //* button, sets all bottom_keypad_labels to 0 except for  count.mult, makes input.num2=input.num1 so input.num1 can be reused
 {
-  multcount = 1;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
-  num2 = num1;
+  clear_count();
+  count.mult = 1;
+  input.num2 = input.num1;
 }
-void add_callback() //+ button, sets all secondarys to 0 except for addcount, makes num2=num1 so num1 can be reused
+
+void add_callback() //+ button, sets all bottom_keypad_labels to 0 except for  count.add, makes input.num2=input.num1 so input.num1 can be reused
 {
-  multcount = 0;
-  addcount = 1;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
-  num2 = num1;
+  clear_count();
+  count.add = 1;
+  input.num2 = input.num1;
 }
-void subtract_callback()//- button, sets all secondarys to 0 except for subcount, makes num2=num1 so num1 can be reused
+
+void subtract_callback()//- button, sets all bottom_keypad_labels to 0 except for  count.sub, makes input.num2=input.num1 so input.num1 can be reused
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 1;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
-  num2 = num1;
+  clear_count();
+  count.sub = 1;
+  input.num2 = input.num1;
 }
-void divide_callback()// "/" button, sets all secondarys to 0 except for divcount, makes num2=num1 so num1 can be reused
+
+void divide_callback()// "/" button, sets all bottom_keypad_labels to 0 except for  count.div, makes input.num2=input.num1 so input.num1 can be reused
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 1;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
-  num2 = num1;
+  clear_count();
+  count.div = 1;
+  input.num2 = input.num1;
 }
+
 void squared_callback()
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 1;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
+  clear_count();
+  count.squared = 1;
   equals_callback();
 }
-void power_callback() //* button, sets all secondarys to 0 except for multcount, makes num2=num1 so num1 can be reused
+
+void power_callback() //* button, sets all bottom_keypad_labels to 0 except for  count.mult, makes input.num2=input.num1 so input.num1 can be reused
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 1;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
-  num2 = num1;
+  clear_count();
+  count.power = 1;
+  input.num2 = input.num1;
 }
 
 void percent_callback() 
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 1;
-  num2 = num1;
+  clear_count();
+  count.percent = 1;
+  input.num2 = input.num1;
 }
 
 void squareroot_callback()
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 1;
-  factorialcount = 0;
-  percentcount = 0;
+  clear_count();
+  count.squareroot = 1;
   equals_callback();
 }
 
 void factorial_callback()
 {
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 1;
-  percentcount = 0;
+  clear_count();
+  count.factorial = 1;
   equals_callback();
+}
+
+void modulo()
+{
+  clear_count();
+  count.mod = 1;
+  input.num2 = input.num1;
 }
 
 void equals_callback() // = callback 
 {
-char finaloutput[200]; // character array for the text
-if (addcount > 0) //if + was pressed it does the calculations 
+if ( count.add > 0) //if + was pressed it does the calculations 
 {
-  num1 = num2 + num1;
+  input.num1 = input.num2 + input.num1;
 }
-if (subcount > 0) //if - was pressed it does the calculations 
+if ( count.sub > 0) //if - was pressed it does the calculations 
 {
-  num1 = num2 - num1;
+  input.num1 = input.num2 - input.num1;
 }
-if (multcount > 0) //if * was pressed it does the calculations 
+if ( count.mult > 0) //if * was pressed it does the calculations 
 {
-  num1 = num2 * num1;
+  input.num1 = input.num2 * input.num1;
 }
-if (divcount > 0) //if / was pressed it does the calculations 
+if ( count.div > 0) //if / was pressed it does the calculations 
 {
-  num1 = num2 / num1;
+  input.num1 = input.num2 / input.num1;
 }
-if (powercount >0)
+if ( count.power >0)
 {
-  num1 = pow(num2, num1);
+  input.num1 = pow(input.num2, input.num1);
 }
-if (squaredcount > 0)
+if ( count.squared > 0)
 {
-  num1 = (num1 * num1);
+  input.num1 = (input.num1 * input.num1);
 }
-if (squareroot > 0)
+if ( count.squareroot > 0)
 {
-  num1 = sqrt(num1);
+  input.num1 = sqrt(input.num1);
 }
-if (factorialcount > 0)
+if ( count.factorial > 0)
 {
-  int holder=1;
-  for(long int i=1; i<=num1; i++)
+  int output=1;
+  for(long int i=1; i<=input.num1; i++)
   {
-    holder*=i;
+    output*=i;
   }
-  num1=holder;
+  input.num1=output;
 }
-if (percentcount >0)
+if ( count.percent >0)
 {
-  num2 /= 100;
-  num1 *= num2;
+  input.num2 /= 100;
+  input.num1 *= input.num2;
 }
-sprintf(finaloutput, "%Lf", num1); //copies num1 to preview 
-gtk_text_buffer_set_text (buffer, finaloutput, -1); //displays preview
-//once preview is displayed it sets all secondarys and placements to 0 
-multcount = 0; 
-addcount = 0;
-subcount = 0;
-divcount = 0;
-placementcount = 0;
-decimalcount = 0;
-powercount = 0;
-squaredcount = 0;
-squareroot = 0;
-factorialcount = 0;
-percentcount = 0;
-}
-void clear_callback() //clears all secondarys, variables, and placements 
+if ( count.mod > 0)
 {
-  num1=0;
-  num2 = 0;
-  multcount = 0;
-  addcount = 0;
-  subcount = 0;
-  divcount = 0;
-  placementcount = 0;
-  decimalcount = 0;
-  powercount = 0;
-  squaredcount = 0;
-  squareroot = 0;
-  factorialcount = 0;
-  percentcount = 0;
-  char preview[20];
-  sprintf(preview, "%Lf", num1);
-  gtk_text_buffer_set_text (buffer, preview, -1);
+  int num1 = input.num1, num2 = input.num2;
+  num1 = num2%num1;
+  input.num1 = num1;
 }
+preview();
+clear_count();//once preview is displayed it sets all bottom_keypad_labels and placements to 0 
+}
+
+void clear_input() //clears all bottom_keypad_labels, variables, and placements 
+{
+  clear_count();
+  input.num1 = 0;
+  input.num2 = 0;
+  preview();
+}
+
 void decimal_callback() //decimal callback 
 {
-placementcount = 0; //sets placement to 0 
-decimalcount--; //decreases decimal count so that you can use 10^-1 etc 
-char preview[20];
-sprintf(preview, "%Lf", num1); //copies num1 to preview 
-gtk_text_buffer_set_text (buffer, preview, -1); //displays preview 
+count.placement = 0; //sets placement to 0 
+count.decimal--; //decreases decimal count so that you can use 10^-1 etc 
+preview();
+}
+
+void preview()
+{
+sprintf(input.preview, "%Lf", input.num1); //copies input.num1 to preview 
+gtk_text_buffer_set_text ( gwidget.buffer, input.preview, -1); //displays preview 
+}
+
+void clear_count()
+{
+  count.mult = 0;
+  count.add = 0;
+  count.sub = 0;
+  count.div = 0;
+  count.placement = 0;
+  count.decimal = 0;
+  count.power = 0;
+  count.squared = 0;
+  count.squareroot = 0;
+  count.factorial = 0;
+  count.percent = 0;
+  count.hist = 0;
+}
+
+void undo()
+{
+  count.hist--;
+  input.num1 = input.history[count.hist];
+  count.hist++;
+  preview();
+}
+
+void redo()
+{
+  input.num1 = input.history[count.hist];
+  count.hist++;
+  clear_count();
+  preview();
+}
+
+void copy()
+{
+  GtkClipboard *clipboard= gtk_clipboard_get(GDK_SELECTION_CLIPBOARD); 
+  gtk_clipboard_set_text(clipboard, input.preview, -1);
+}
+
+void cut()
+{
+  GtkClipboard *clipboard= gtk_clipboard_get(GDK_SELECTION_CLIPBOARD); 
+  gtk_clipboard_set_text(clipboard, input.preview, -1);
+  clear_input();
+}
+
+void pi()
+{
+  input.num1 = M_PI;
+  input.history[count.hist] = input.num1;
+  count.hist++;
+  preview();
+}
+
+void phi()
+{
+  input.num1 = 1.61803398875;
+  input.history[count.hist] = input.num1;
+  count.hist++;
+  preview();
+}
+
+void euler()
+{
+  input.num1 = 2.71828182846;
+  input.history[count.hist] = input.num1;
+  count.hist++;
+  preview();
 }
