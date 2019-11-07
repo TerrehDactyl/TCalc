@@ -1,6 +1,6 @@
 TCALC
 -
-What is Tcalc
+What is Tcalc?
 -
 Tcalc is a multifunction calculator written in C using the GTK 3.0 library, modeled after the KDE product Kcalc.
 
